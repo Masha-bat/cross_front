@@ -37,7 +37,15 @@ const Menu = () => {
     setSelectedDescription(e.target.value);
   };
 
-  const filteredDishes = dishes
+  // Удаление дубликатов по названию
+  const uniqueDishes = dishes.reduce((acc, dish) => {
+    if (!acc.some(d => d.name.toLowerCase() === dish.name.toLowerCase())) {
+      acc.push(dish);
+    }
+    return acc;
+  }, []);
+
+  const filteredDishes = uniqueDishes
     .filter(dish => dish.name.toLowerCase().includes(searchTerm.toLowerCase()))
     .filter(dish => selectedDescription ? dish.description.includes(selectedDescription) : true)
     .sort((a, b) => sortOrder === 'asc' ? a.price - b.price : b.price - a.price);

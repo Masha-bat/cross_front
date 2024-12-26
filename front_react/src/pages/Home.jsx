@@ -18,7 +18,7 @@ const Home = () => {
   const fetchAverageCheck = async () => {
     try {
       const response = await axios.get('http://localhost:5122/api/Orders/averageCheck');
-      setAverageCheck(response.data);
+      setAverageCheck(Math.round(response.data));
       console.log(response);
     } catch (err) {
       setError('Ошибка при получении данных о среднем чеке.');
