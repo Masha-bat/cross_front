@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const Menu = () => {
-  const [dishes, setDishes] = useState([
-    { id: 1, name: 'Салат Цезарь', description: 'Классический салат с курицей и соусом Цезарь', price: 350 },
-    { id: 2, name: 'Борщ', description: 'Традиционный украинский суп с капустой и мясом', price: 150 },
-    { id: 3, name: 'Паста Карбонара', description: 'Итальянская паста с беконом и сыром', price: 400 },
-    { id: 4, name: 'Стейк с картофелем', description: 'Сочный стейк с жареным картофелем', price: 700 },
-    { id: 5, name: 'Рыба на гриле', description: 'Нежная рыба, приготовленная на гриле', price: 500 },
-  ]);
-
+  const [dishes, setDishes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [newDish, setNewDish] = useState({ name: '', description: '', price: '' });
-  const [editDish, setEditDish] = useState(null);
+  const [viewMode, setViewMode] = useState('table'); // 'table' или 'cards'
+  const [selectedDescription, setSelectedDescription] = useState('');
+
+  useEffect(() => {
+    const fetchDishes = async () => {
+      try {
+        const response = await axios.get('http://localhost:5122/api/Dishes');
+        setDishes(response.data);
+      } catch (error) {
+        console.error('Ошибка при получении данных:', error);
+      }
+    };
+
+    fetchDishes();
+  }, []);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -22,23 +29,20 @@ const Menu = () => {
     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
   };
 
-  const handleAddDish = () => {
-    setDishes([...dishes, { ...newDish, id: dishes.length + 1 }]);
-    setNewDish({ name: '', description: '', price: '' });
+  const toggleViewMode = () => {
+    setViewMode(viewMode === 'table' ? 'cards' : 'table');
   };
 
-  const handleEditDish = (id) => {
-    setDishes(dishes.map(dish => dish.id === id ? editDish : dish));
-    setEditDish(null);
-  };
-
-  const handleDeleteDish = (id) => {
-    setDishes(dishes.filter(dish => dish.id !== id));
+  const handleDescriptionChange = (e) => {
+    setSelectedDescription(e.target.value);
   };
 
   const filteredDishes = dishes
     .filter(dish => dish.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter(dish => selectedDescription ? dish.description.includes(selectedDescription) : true)
     .sort((a, b) => sortOrder === 'asc' ? a.price - b.price : b.price - a.price);
+
+  const uniqueDescriptions = [...new Set(dishes.map(dish => dish.description))];
 
   return (
     <div className="container mx-auto p-4">
@@ -53,99 +57,49 @@ const Menu = () => {
       <button onClick={handleSort} className="mb-4 p-2 border rounded">
         Сортировать по цене {sortOrder === 'asc' ? '↑' : '↓'}
       </button>
-      <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
-        <thead className="bg-gray-200">
-          <tr>
-            <th className="py-2 px-4 text-left">Название</th>
-            <th className="py-2 px-4 text-left">Описание</th>
-            <th className="py-2 px-4 text-left">Цена</th>
-            <th className="py-2 px-4 text-left">Действия</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredDishes.map(dish => (
-            <tr key={dish.id} className="border-b">
-              <td className="py-2 px-4">{dish.name}</td>
-              <td className="py-2 px-4">{dish.description}</td>
-              <td className="py-2 px-4">{dish.price} руб.</td>
-              <td className="py-2 px-4">
-                <button
-                  onClick={() => setEditDish(dish)}
-                  className="bg-yellow-500 text-white p-2 rounded mr-2"
-                >
-                  Редактировать
-                </button>
-                <button
-                  onClick={() => handleDeleteDish(dish.id)}
-                  className="bg-red-500 text-white p-2 rounded"
-                >
-                  Удалить
-                </button>
-              </td>
+      <button onClick={toggleViewMode} className="mb-4 p-2 border rounded">
+        Переключить вид {viewMode === 'table' ? 'на карточки' : 'на таблицу'}
+      </button>
+      <select
+        value={selectedDescription}
+        onChange={handleDescriptionChange}
+        className="mb-4 p-2 border rounded"
+      >
+        <option value="">Все описания</option>
+        {uniqueDescriptions.map((description, index) => (
+          <option key={index} value={description}>
+            {description}
+          </option>
+        ))}
+      </select>
+      {viewMode === 'table' ? (
+        <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="py-2 px-4 text-left">Название</th>
+              <th className="py-2 px-4 text-left">Описание</th>
+              <th className="py-2 px-4 text-left">Цена</th>
             </tr>
+          </thead>
+          <tbody>
+            {filteredDishes.map(dish => (
+              <tr key={dish.id} className="border-b">
+                <td className="py-2 px-4">{dish.name}</td>
+                <td className="py-2 px-4">{dish.description}</td>
+                <td className="py-2 px-4">{dish.price} руб.</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {filteredDishes.map(dish => (
+            <div key={dish.id} className="bg-white shadow-md rounded-lg p-4">
+              <h2 className="text-xl font-bold mb-2">{dish.name}</h2>
+              <p className="text-gray-700 mb-2">{dish.description}</p>
+              <p className="text-gray-900 font-bold">{dish.price} руб.</p>
+            </div>
           ))}
-        </tbody>
-      </table>
-      <div className="mt-4">
-        <h2 className="text-2xl font-bold mb-2">Добавить блюдо</h2>
-        <input
-          type="text"
-          placeholder="Название"
-          value={newDish.name}
-          onChange={(e) => setNewDish({ ...newDish, name: e.target.value })}
-          className="mb-2 p-2 border rounded"
-        />
-        <input
-          type="text"
-          placeholder="Описание"
-          value={newDish.description}
-          onChange={(e) => setNewDish({ ...newDish, description: e.target.value })}
-          className="mb-2 p-2 border rounded"
-        />
-        <input
-          type="number"
-          placeholder="Цена"
-          value={newDish.price}
-          onChange={(e) => setNewDish({ ...newDish, price: e.target.value })}
-          className="mb-2 p-2 border rounded"
-        />
-        <button
-          onClick={handleAddDish}
-          className="bg-green-500 text-white p-2 rounded"
-        >
-          Добавить
-        </button>
-      </div>
-      {editDish && (
-        <div className="mt-4">
-          <h2 className="text-2xl font-bold mb-2">Редактировать блюдо</h2>
-          <input
-            type="text"
-            placeholder="Название"
-            value={editDish.name}
-            onChange={(e) => setEditDish({ ...editDish, name: e.target.value })}
-            className="mb-2 p-2 border rounded"
-          />
-          <input
-            type="text"
-            placeholder="Описание"
-            value={editDish.description}
-            onChange={(e) => setEditDish({ ...editDish, description: e.target.value })}
-            className="mb-2 p-2 border rounded"
-          />
-          <input
-            type="number"
-            placeholder="Цена"
-            value={editDish.price}
-            onChange={(e) => setEditDish({ ...editDish, price: e.target.value })}
-            className="mb-2 p-2 border rounded"
-          />
-          <button
-            onClick={() => handleEditDish(editDish.id)}
-            className="bg-blue-500 text-white p-2 rounded"
-          >
-            Сохранить
-          </button>
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const Login = ({ setIsAuthenticated, setIsAdmin }) => {
+const Login = ({ isOpen, onClose, onLogin }) => {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -13,29 +13,29 @@ const Login = ({ setIsAuthenticated, setIsAdmin }) => {
     setError('');
 
     try {
-      const response = await axios.post('https://localhost:7183/api/Auth/login', {
+      const response = await axios.post('http://localhost:5122/api/Auth/login', {
         login,
-        password, // Отправляем введенный пользователем пароль
+        password,
       });
 
-      const token = response.data.token; // Предполагается, что токен возвращается в поле `token`
-      const isAdmin = response.data.isAdmin; // Предполагается, что роль администратора возвращается в поле `isAdmin`
+      const token = response.data.token;
+      const isAdmin = response.data.isAdmin;
       localStorage.setItem('authToken', token);
 
-      // Обновление состояния авторизации и роли администратора
-      setIsAuthenticated(true);
-      setIsAdmin(isAdmin);
-
-      navigate('/'); // Перенаправление на главную страницу после успешной авторизации
+      onLogin(isAdmin);
+      navigate('/add-order');
     } catch (err) {
       setError('Неверный логин или пароль');
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6">Вход</h2>
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="absolute inset-0 bg-gray-800 opacity-75"></div>
+      <div className="bg-white p-6 rounded-lg shadow-lg z-10 w-96">
+        <h2 className="text-2xl font-bold mb-4">Авторизация</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="login">
@@ -70,6 +70,13 @@ const Login = ({ setIsAuthenticated, setIsAdmin }) => {
               type="submit"
             >
               Войти
+            </button>
+            <button
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-4"
+              type="button"
+              onClick={onClose}
+            >
+              Отмена
             </button>
           </div>
         </form>
